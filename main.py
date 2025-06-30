@@ -1,5 +1,9 @@
-import os, json, base64, re
+import os
+import json
+import base64
+import re
 from urllib.parse import urlparse
+
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse
 import openai
@@ -10,8 +14,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 MODEL = "gpt-4o-mini"
 
 DFS_LOGIN = os.getenv("DATAFORSEO_LOGIN")
-DFS_PASS  = os.getenv("DATAFORSEO_PASSWORD")
-DFS_AUTH  = {
+DFS_PASS = os.getenv("DATAFORSEO_PASSWORD")
+DFS_AUTH = {
     "Authorization": "Basic " + base64.b64encode(
         f"{DFS_LOGIN}:{DFS_PASS}".encode()
     ).decode()
@@ -32,8 +36,9 @@ def clean_domain(url: str) -> str:
     hostname = parsed.hostname or url.strip()
     return re.sub(r"^www\.", "", hostname)
 
+
 # ---------- DataForSEO helper ----------
- async def fetch_ranked_keywords(domain: str):
+async def fetch_ranked_keywords(domain: str):
     payload = [{
         "target": domain,
         "language_name": "English",
@@ -41,7 +46,7 @@ def clean_domain(url: str) -> str:
         "load_rank_absolute": True,
         "limit": 10
     }]
-    async with httpx.AsyncClient(timeout=200) as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.post(
             "https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live",
             headers=DFS_AUTH,
@@ -52,8 +57,9 @@ def clean_domain(url: str) -> str:
             items = js["tasks"][0]["result"][0]["items"]
             return [kw["keyword"] for kw in items]
         except Exception:
-            print("DEBUG: DFS response", js)
+            print("DEBUG: DFS response error", js)
             return []
+
 
 # ---------- Main endpoint ----------
 @app.get("/competitors")
@@ -75,7 +81,7 @@ async def get_competitors(
             model=MODEL,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user",   "content": appDescription}
+                {"role": "user", "content": appDescription}
             ],
             response_format={"type": "json_object"},
             temperature=0.3
@@ -99,3 +105,4 @@ async def get_competitors(
         raise HTTPException(502, f"DataForSEO error: {e}")
 
     return JSONResponse(content={"competitors": results})
+
