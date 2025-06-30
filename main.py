@@ -39,7 +39,7 @@ async def fetch_ranked_keywords(domain: str):
         "language_code": "en",
         "location_code": 2840  # United States
     }]
-    async with httpx.AsyncClient(timeout=20) as client:
+    async with httpx.AsyncClient(timeout=200) as client:
         resp = await client.post(
             "https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live",
             headers=DFS_AUTH,
