@@ -30,19 +30,20 @@ async def get_competitors(
     )
 
     try:
-    rsp = openai.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user",   "content": appDescription}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.3
-    )
+        # ----- synchronous call (remove 'await') -----
+        rsp = openai.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user",   "content": appDescription}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3
+        )
     except Exception as e:
         raise HTTPException(502, f"OpenAI error: {e}")
 
-    # content is a JSON string like: {"competitors": ["url1","url2","url3"]}
+    # content is something like {"competitors": ["url1","url2","url3"]}
     try:
         data = json.loads(rsp.choices[0].message.content)
     except json.JSONDecodeError:
