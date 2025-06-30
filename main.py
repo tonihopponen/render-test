@@ -1,4 +1,5 @@
-import os, json, base64
+import os, json, base64, re
+from urllib.parse import urlparse
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse
 import openai
@@ -21,12 +22,22 @@ app = FastAPI(
     description="Returns competitor domains and their ranked keywords",
 )
 
+# ---------- Utils ----------
+def clean_domain(url: str) -> str:
+    """
+    Extracts a clean domain name from a full URL.
+    e.g. https://www.example.com → example.com
+    """
+    parsed = urlparse(url.strip())
+    hostname = parsed.hostname or url.strip()
+    return re.sub(r"^www\.", "", hostname)
+
 # ---------- DataForSEO helper ----------
 async def fetch_ranked_keywords(domain: str):
     payload = [{
         "target": domain,
         "language_code": "en",
-        "location_code": 2840  # US
+        "location_code": 2840  # United States
     }]
     async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.post(
@@ -37,7 +48,7 @@ async def fetch_ranked_keywords(domain: str):
         js = resp.json()
         try:
             items = js["tasks"][0]["result"][0]["items"]
-            return [kw["keyword"] for kw in items[:10]]  # top 10
+            return [kw["keyword"] for kw in items[:10]]  # top 10 keywords
         except Exception:
             return []
 
@@ -61,7 +72,7 @@ async def get_competitors(
             model=MODEL,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": appDescription}
+                {"role": "user",   "content": appDescription}
             ],
             response_format={"type": "json_object"},
             temperature=0.3
@@ -71,10 +82,11 @@ async def get_competitors(
     except Exception as e:
         raise HTTPException(502, f"OpenAI error: {e}")
 
-    # 2. Fetch ranked keywords per domain
+    # 2. Clean domains + fetch ranked keywords
+    results = []
     try:
-        results = []
-        for domain in competitor_urls:
+        for raw_url in competitor_urls:
+            domain = clean_domain(raw_url)
             keywords = await fetch_ranked_keywords(domain)
             results.append({
                 "domain": domain,
