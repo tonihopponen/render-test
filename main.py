@@ -30,7 +30,7 @@ async def get_competitors(
     )
 
     try:
-        rsp = await openai.chat.completions.create(
+       (
             model=MODEL,
             messages=[
                 {"role": "system", "content": prompt},
