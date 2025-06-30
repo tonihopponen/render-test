@@ -33,11 +33,13 @@ def clean_domain(url: str) -> str:
     return re.sub(r"^www\.", "", hostname)
 
 # ---------- DataForSEO helper ----------
-async def fetch_ranked_keywords(domain: str):
+ async def fetch_ranked_keywords(domain: str):
     payload = [{
         "target": domain,
-        "language_code": "en",
-        "location_code": 2840  # United States
+        "language_name": "English",
+        "location_name": "United States",
+        "load_rank_absolute": True,
+        "limit": 10
     }]
     async with httpx.AsyncClient(timeout=200) as client:
         resp = await client.post(
@@ -48,8 +50,9 @@ async def fetch_ranked_keywords(domain: str):
         js = resp.json()
         try:
             items = js["tasks"][0]["result"][0]["items"]
-            return [kw["keyword"] for kw in items[:10]]  # top 10 keywords
+            return [kw["keyword"] for kw in items]
         except Exception:
+            print("DEBUG: DFS response", js)
             return []
 
 # ---------- Main endpoint ----------
