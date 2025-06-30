@@ -30,16 +30,15 @@ async def get_competitors(
     )
 
     try:
-       (
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user",   "content": appDescription}
-            ],
-            # makes the model return a pure JSON object
-            response_format={"type": "json_object"},
-            temperature=0.3
-        )
+    rsp = openai.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user",   "content": appDescription}
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.3
+    )
     except Exception as e:
         raise HTTPException(502, f"OpenAI error: {e}")
 
