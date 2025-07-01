@@ -63,32 +63,8 @@ async def fetch_ranked_keywords(domain: str):
             js = resp.json()
             logging.info(f"DFS response: {json.dumps(js, indent=2)}")
             items = js["tasks"][0]["result"][0]["items"]
-async def fetch_ranked_keywords(domain: str):
-    payload = [{
-        "target": domain,
-        "language_name": "English",
-        "location_name": "United States",
-        "load_rank_absolute": True,
-        "limit": 10
-    }]
-    headers = DFS_AUTH.copy()
-    headers["Content-Type"] = "application/json"
-    async with httpx.AsyncClient(timeout=20) as client:
-        try:
-            resp = await client.post(
-                "https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live",
-                headers=headers,
-                json=payload
-            )
-            logging.info(f"DFS status: {resp.status_code}")
-            js = resp.json()
-            logging.info(f"DFS response: {json.dumps(js, indent=2)}")
-            items = js["tasks"][0]["result"][0]["items"]
             # FIX: Extract keyword from keyword_data
             return [kw["keyword_data"]["keyword"] for kw in items if "keyword_data" in kw and "keyword" in kw["keyword_data"]]
-        except Exception as e:
-            logging.error(f"DFS response error: {e}, response: {resp.text if 'resp' in locals() else 'No response'}")
-            return []
         except Exception as e:
             logging.error(f"DFS response error: {e}, response: {resp.text if 'resp' in locals() else 'No response'}")
             return []
@@ -106,7 +82,7 @@ async def get_competitors(
         "Step-by-step task:\n"
         "1. Analyse the app description thoroughly\n"
         "2. Answer two competitor URLs\n\n"
-        "Answer in JSON format. Only include URLs. Don’t add any comments in your answer."
+        "Answer in JSON format. Only include URLs. Don't add any comments in your answer."
     )
 
     try:
