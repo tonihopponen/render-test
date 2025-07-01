@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import re
+import logging
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Query, HTTPException
@@ -20,6 +21,9 @@ DFS_AUTH = {
         f"{DFS_LOGIN}:{DFS_PASS}".encode()
     ).decode()
 }
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="Competitor + SEO POC",
@@ -46,18 +50,22 @@ async def fetch_ranked_keywords(domain: str):
         "load_rank_absolute": True,
         "limit": 10
     }]
+    headers = DFS_AUTH.copy()
+    headers["Content-Type"] = "application/json"
     async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.post(
-            "https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live",
-            headers=DFS_AUTH,
-            json=payload
-        )
-        js = resp.json()
         try:
+            resp = await client.post(
+                "https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live",
+                headers=headers,
+                json=payload
+            )
+            logging.info(f"DFS status: {resp.status_code}")
+            js = resp.json()
+            logging.info(f"DFS response: {json.dumps(js, indent=2)}")
             items = js["tasks"][0]["result"][0]["items"]
             return [kw["keyword"] for kw in items]
-        except Exception:
-            print("DEBUG: DFS response error", js)
+        except Exception as e:
+            logging.error(f"DFS response error: {e}, response: {resp.text if 'resp' in locals() else 'No response'}")
             return []
 
 
@@ -89,6 +97,7 @@ async def get_competitors(
         parsed = json.loads(rsp.choices[0].message.content)
         competitor_urls = parsed.get("competitors") or list(parsed.values())[0]
     except Exception as e:
+        logging.error(f"OpenAI error: {e}")
         raise HTTPException(502, f"OpenAI error: {e}")
 
     # 2. Clean domains + fetch ranked keywords
@@ -102,6 +111,7 @@ async def get_competitors(
                 "keywords": keywords
             })
     except Exception as e:
+        logging.error(f"DataForSEO error: {e}")
         raise HTTPException(502, f"DataForSEO error: {e}")
 
     return JSONResponse(content={"competitors": results})
